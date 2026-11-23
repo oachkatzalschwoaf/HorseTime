@@ -1,0 +1,424 @@
+<!doctype html>
+<!--
+  Legacy: HTML-Nachbau der alten Android-App "TimeTable" (org.cwinkler.timetable, ca. 2018).
+  Erreichbar aus HorseTime unter Optionen → „Alte Version“; Link oben rechts führt zurück.
+  Quelle (Android-Projekt, nicht in diesem Repo): app/src/main/java/org/cwinkler/timetable/
+    - MainActivity.java  (UI, Formatierung, Ø-Geschwindigkeit)
+    - Times.java         (Split-Tabelle, max. 50 Zeilen, Rest-Zeile)
+    - TimeData.java      (min/max-Klemmung, Ø = (min+max)/2)
+  Bewusste Abweichungen vom Original:
+    - Aktualisierung live bei jeder Eingabe (Original: erst bei Fokusverlust/Enter).
+    - Leeres Feld = 0 (Original: alter Wert blieb stehen).
+    - Ø-Geschwindigkeit ohne Zeit zeigt "–" statt Infinity/NaN.
+    - Hinweistext, solange die Tabelle leer ist.
+-->
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#008577">
+<title>TimeTable (Legacy)</title>
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<style>
+  :root {
+    color-scheme: light;
+    --primary: #008577;
+    --primary-dark: #00574B;
+    --accent: #D81B60;
+    --bg: #fafafa;
+    --text: #212121;
+    --muted: #6b6b6b;
+    --line: #d9d9d9;
+    --btn: #d6d7d7;
+    --cell-a: #f8f8f8;
+    --cell-b: #ffffff;
+    --head-a: #f0f0f0;
+    --head-b: #f7f7f7;
+    --avg: #005e16;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: Roboto, "Segoe UI", system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    -webkit-text-size-adjust: 100%;
+  }
+  .appbar {
+    position: sticky; top: 0; z-index: 2;
+    background: var(--primary); color: #fff;
+    padding-top: env(safe-area-inset-top);
+    box-shadow: 0 2px 4px rgba(0,0,0,.2);
+  }
+  .appbar .bar {
+    max-width: 640px; height: 56px; margin: 0 auto; padding: 0 8px 0 16px;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  .appbar h1 { margin: 0; font-size: 20px; font-weight: 500; }
+  .appbar .back {
+    display: inline-flex; align-items: center; min-height: 40px; padding: 0 12px; border-radius: 20px;
+    color: #fff; text-decoration: none; font-size: 14px; font-weight: 500; letter-spacing: .02em;
+    background: rgba(255,255,255,.14);
+  }
+  .appbar .back:active { background: rgba(255,255,255,.28); }
+  .content { max-width: 640px; margin: 0 auto; padding: 16px 16px calc(24px + env(safe-area-inset-bottom)); }
+
+  /* --- Eingabe (ExpandLayoutInput) --- */
+  .label { display: block; margin: 10px 0 0 10px; color: var(--muted); font-size: 14px; }
+  .row2 { display: flex; gap: 8px; }
+  .row2 > div { flex: 1; min-width: 0; }
+  .field { display: flex; align-items: flex-end; gap: 6px; margin-top: 2px; }
+  .clearable { position: relative; flex: 1 1 auto; min-width: 0; max-width: 8em; }
+  .clearable input {
+    width: 100%; font: inherit; font-size: 18px; text-align: end;
+    padding: 8px 26px 6px 4px; border: 0; border-bottom: 1px solid #8a8a8a;
+    background: transparent; color: var(--text); outline: none; border-radius: 0;
+  }
+  .clearable input:focus { border-bottom: 2px solid var(--accent); padding-bottom: 5px; }
+  .clearable input::placeholder { color: #a8a8a8; }
+  .clear {
+    position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+    width: 24px; height: 24px; border: 0; background: none; cursor: pointer;
+    color: #8a8a8a; font-size: 18px; line-height: 1; padding: 0;
+  }
+  .clear[hidden] { display: none; }
+  .unit { padding-bottom: 8px; }
+
+  .abtn {
+    font: inherit; font-size: 14px; letter-spacing: .02em; color: var(--text);
+    background: var(--btn); border: 0; border-radius: 2px; cursor: pointer;
+    min-height: 40px; padding: 0 16px; margin: 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,.28);
+  }
+  .abtn:active { box-shadow: 0 3px 6px rgba(0,0,0,.3); background: #c9caca; }
+  .abtn.wide { display: block; width: calc(100% - 48px); margin: 6px 24px; }
+  .right { display: flex; justify-content: flex-end; }
+  .abtn.icon { display: inline-flex; align-items: center; gap: 4px; }
+  .abtn svg { width: 22px; height: 22px; }
+
+  /* --- Kompaktleiste (FlatLayoutInput) --- */
+  .flat { display: flex; align-items: flex-start; gap: 5px; padding: 0 5px 8px; }
+  .flat > div { flex: 1; min-width: 0; font-variant-numeric: tabular-nums; line-height: 1.45; }
+  .flat .dist { margin-top: 10px; }
+  .flat button {
+    flex: none; width: 44px; height: 44px; border: 0; cursor: pointer;
+    background: var(--primary); color: #fff; display: grid; place-items: center;
+  }
+  .flat button svg { width: 26px; height: 26px; }
+  [hidden] { display: none !important; }
+
+  /* --- Tabelle (tableTimeResults) --- */
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; margin-top: 4px; }
+  th { font-weight: 400; font-size: 14px; text-align: left; padding: 8px 3px; vertical-align: top; }
+  th:nth-child(odd) { background: var(--head-a); }
+  th:nth-child(even) { background: var(--head-b); }
+  th:last-child { text-align: right; padding-right: 6px; }
+  td { padding: 8px 3px; vertical-align: top; border-bottom: 1px solid var(--line); }
+  td:nth-child(odd) { background: var(--cell-a); }
+  td:nth-child(even) { background: var(--cell-b); }
+  td.mm span { display: block; }
+  td.mm span + span { text-align: right; padding-right: 6px; }
+  td.avg { text-align: right; font-weight: 700; color: var(--avg); padding: 20px 8px 8px 0; }
+  .empty { color: var(--muted); text-align: center; padding: 28px 12px; }
+
+  /* --- Toast --- */
+  .toast {
+    position: fixed; left: 50%; bottom: 48px; transform: translateX(-50%);
+    max-width: calc(100% - 32px); background: rgba(50,50,50,.92); color: #fff;
+    padding: 10px 18px; border-radius: 22px; font-size: 14px;
+    opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 10;
+  }
+  .toast.show { opacity: 1; }
+
+  /* --- Zeitwahl (MyTimePickerDialog) --- */
+  dialog {
+    border: 0; padding: 0; border-radius: 2px; width: min(320px, calc(100% - 32px));
+    box-shadow: 0 12px 40px rgba(0,0,0,.35);
+  }
+  dialog::backdrop { background: rgba(0,0,0,.45); }
+  .dlg-head {
+    background: var(--primary); color: #fff; text-align: center;
+    font-size: 40px; font-weight: 300; padding: 18px 0; font-variant-numeric: tabular-nums;
+  }
+  .spinners { display: flex; justify-content: center; gap: 14px; padding: 14px 10px 6px; }
+  .spin { display: flex; flex-direction: column; align-items: center; }
+  .spin button {
+    width: 56px; height: 36px; border: 0; background: none; cursor: pointer;
+    color: var(--muted); display: grid; place-items: center; border-radius: 4px;
+  }
+  .spin button:hover { background: #f0f0f0; }
+  .spin button svg { width: 26px; height: 26px; }
+  .spin input {
+    width: 56px; text-align: center; font: inherit; font-size: 26px;
+    border: 0; border-top: 2px solid var(--primary); border-bottom: 2px solid var(--primary);
+    padding: 6px 0; outline: none; font-variant-numeric: tabular-nums;
+  }
+  .spin small { color: var(--muted); margin-top: 4px; }
+  .dlg-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 8px; }
+  .dlg-actions button {
+    font: inherit; font-weight: 500; text-transform: uppercase; letter-spacing: .04em;
+    color: var(--primary); background: none; border: 0; padding: 10px 12px;
+    cursor: pointer; border-radius: 2px;
+  }
+  .dlg-actions button:hover { background: #eef6f5; }
+</style>
+</head>
+<body>
+
+<header class="appbar"><div class="bar"><h1>TimeTable</h1><a class="back" href="./#settings">HorseTime &rsaquo;</a></div></header>
+
+<main class="content">
+    <!-- Eingabe aufgeklappt -->
+    <section id="expandInput">
+      <div class="row2">
+        <div>
+          <label class="label" for="etDistance">Distanz</label>
+          <div class="field">
+            <span class="clearable">
+              <input id="etDistance" inputmode="numeric" pattern="[0-9]*" placeholder="Distanz" autocomplete="off">
+              <button class="clear" type="button" aria-label="Distanz leeren" hidden>&times;</button>
+            </span>
+            <span class="unit">Meter</span>
+          </div>
+        </div>
+        <div>
+          <label class="label" for="etSteps">Steps</label>
+          <div class="field">
+            <span class="clearable">
+              <input id="etSteps" inputmode="numeric" pattern="[0-9]*" placeholder="Steps" autocomplete="off">
+              <button class="clear" type="button" aria-label="Steps leeren" hidden>&times;</button>
+            </span>
+            <span class="unit">Meter</span>
+          </div>
+        </div>
+      </div>
+
+      <span class="label">min. Dauer</span>
+      <button class="abtn wide" id="btnMin" type="button">0hr 00min 00sec</button>
+
+      <span class="label">max. Dauer</span>
+      <button class="abtn wide" id="btnMax" type="button">0hr 00min 00sec</button>
+
+      <div class="right">
+        <button class="abtn icon" id="btnShowTable" type="button">show table
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7.41 15.41 12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- Eingabe zugeklappt -->
+    <section id="flatInput" class="flat" hidden>
+      <div class="dist" id="flatDistance"></div>
+      <div><div id="flatMin"></div><div id="flatMax"></div></div>
+      <div><div id="flatAvg"></div><div id="flatSpeed"></div></div>
+      <button id="btnOpen" type="button" aria-label="Eingabe aufklappen">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>
+      </button>
+    </section>
+
+    <table>
+      <thead><tr><th>#</th><th>Distanz</th><th>time min/max</th><th>&oslash;-time</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <p class="empty" id="empty">Distanz, Steps sowie min. und max. Dauer eingeben.</p>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<dialog id="picker">
+  <div class="dlg-head" id="pickHead">00:00:00</div>
+  <div class="spinners">
+    <div class="spin" data-unit="h" data-max="23">
+      <button type="button" data-d="1" aria-label="Stunden plus"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M7.41 15.41 12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg></button>
+      <input inputmode="numeric" aria-label="Stunden">
+      <button type="button" data-d="-1" aria-label="Stunden minus"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></button>
+      <small>Std</small>
+    </div>
+    <div class="spin" data-unit="m" data-max="59">
+      <button type="button" data-d="1" aria-label="Minuten plus"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M7.41 15.41 12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg></button>
+      <input inputmode="numeric" aria-label="Minuten">
+      <button type="button" data-d="-1" aria-label="Minuten minus"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></button>
+      <small>Min</small>
+    </div>
+    <div class="spin" data-unit="s" data-max="59">
+      <button type="button" data-d="1" aria-label="Sekunden plus"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M7.41 15.41 12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg></button>
+      <input inputmode="numeric" aria-label="Sekunden">
+      <button type="button" data-d="-1" aria-label="Sekunden minus"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></button>
+      <small>Sek</small>
+    </div>
+  </div>
+  <div class="dlg-actions">
+    <button type="button" id="pickCancel">Abbrechen</button>
+    <button type="button" id="pickOk">OK</button>
+  </div>
+</dialog>
+
+<script>
+"use strict";
+
+// ---------- Logik (aus TimeData.java / Times.java) ----------
+const MAX_ROWS = 50;                       // Times.getTimes: "Show only first 50 Entries"
+const state = { dist: 0, step: 0, min: 0, max: 0 };   // Meter, Meter, Sekunden, Sekunden
+
+// TimeData.setMinTime / setMaxTime: die jeweils andere Zeit wird nachgezogen
+function setMin(sec) { state.min = sec; if (state.max < state.min) state.max = state.min; }
+function setMax(sec) { state.max = sec; if (state.max < state.min) state.min = state.max; }
+
+// TimeData.updateAverage: (min + max) / 2, auf ganze Sekunden abgeschnitten
+const average = (a, b) => Math.floor((a + b) / 2);
+
+// Times.getTimes: Zeile je Step, anteilige Zeit abgeschnitten; Rest-Zeile mit Gesamtdistanz
+function getTimes({ dist, step, min, max }) {
+  if (dist <= 0 || step <= 0) return null;
+  if (min < 1 || max < 1) return null;
+  let steps = Math.floor(dist / step);
+  let capped = false;
+  if (steps > MAX_ROWS) { steps = MAX_ROWS; capped = true; }
+  const rows = [];
+  for (let i = 1; i <= steps; i++) {
+    const d = i * step;
+    const rMin = Math.floor(min * d / dist);
+    const rMax = Math.floor(max * d / dist);
+    rows.push({ id: i, dist: d, min: rMin, max: rMax, avg: average(rMin, rMax) });
+  }
+  if (dist % step !== 0) {
+    rows.push({ id: steps + 1, dist, min, max, avg: average(min, max) });
+  }
+  return { rows, capped };
+}
+
+// ---------- Formatierung (aus MainActivity.java) ----------
+const pad = n => String(n).padStart(2, "0");
+const hms = sec => [Math.floor(sec / 3600), Math.floor(sec % 3600 / 60), sec % 60];
+
+// getTimeFormated: "MM:SS" bzw. "H:MM:SS"
+function fmt(sec) {
+  const [h, m, s] = hms(sec);
+  return h === 0 ? `${pad(m)}:${pad(s)}` : `${h}:${pad(m)}:${pad(s)}`;
+}
+// getTimeFormatedText: "0hr 00min 00sec"
+function fmtText(sec) {
+  const [h, m, s] = hms(sec);
+  return `${h}hr ${pad(m)}min ${pad(s)}sec`;
+}
+// Kompaktleiste: volle Kilometer als "km", sonst "m"
+const fmtDist = d => d % 1000 === 0 ? `${d / 1000}km` : `${d}m`;
+// "ø %.1f km/h" (deutsches Locale -> Komma)
+function fmtSpeed(dist, sec) {
+  if (dist <= 0 || sec <= 0) return "ø – km/h";
+  const v = (dist / 1000) / (sec / 3600);
+  return `ø ${v.toFixed(1).replace(".", ",")} km/h`;
+}
+
+// ---------- UI ----------
+const $ = id => document.getElementById(id);
+
+function render() {
+  $("btnMin").textContent = fmtText(state.min);
+  $("btnMax").textContent = fmtText(state.max);
+
+  const avg = average(state.min, state.max);
+  $("flatDistance").textContent = fmtDist(state.dist);
+  $("flatMin").textContent = "min: " + fmt(state.min);
+  $("flatMax").textContent = "max: " + fmt(state.max);
+  $("flatAvg").textContent = "ø: " + fmt(avg);
+  $("flatSpeed").textContent = fmtSpeed(state.dist, avg);
+
+  const res = getTimes(state);
+  const tbody = $("tbody");
+  tbody.replaceChildren();
+  $("empty").hidden = !!res;
+  if (!res) return;
+  if (res.capped) toast("Steps too small! Show only first 50 Entries!");
+
+  for (const r of res.rows) {
+    const tr = document.createElement("tr");
+    tr.innerHTML =
+      `<td>${r.id}</td>` +
+      `<td>${r.dist}m</td>` +
+      `<td class="mm"><span>${fmt(r.min)}</span><span>${fmt(r.max)}</span></td>` +
+      `<td class="avg">${fmt(r.avg)}</td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+let toastTimer = 0;
+function toast(msg) {
+  const t = $("toast");
+  if (t.classList.contains("show")) return;
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 3500);
+}
+
+// Zahlenfelder mit Lösch-Button (ClearableEditText)
+function bindNumber(input, key) {
+  const clear = input.parentElement.querySelector(".clear");
+  input.addEventListener("input", () => {
+    input.value = input.value.replace(/\D/g, "");
+    clear.hidden = input.value === "";
+    state[key] = input.value === "" ? 0 : parseInt(input.value, 10);
+    render();
+  });
+  input.addEventListener("keydown", e => { if (e.key === "Enter") input.blur(); });
+  clear.addEventListener("click", () => {
+    input.value = "";
+    input.dispatchEvent(new Event("input"));
+    input.focus();
+  });
+}
+bindNumber($("etDistance"), "dist");
+bindNumber($("etSteps"), "step");
+
+// Auf-/Zuklappen (onClickInputShowTable / onClickInputHideTable)
+$("btnShowTable").addEventListener("click", () => { $("expandInput").hidden = true; $("flatInput").hidden = false; });
+$("btnOpen").addEventListener("click", () => { $("expandInput").hidden = false; $("flatInput").hidden = true; });
+
+// Zeitwahl-Dialog mit Sekunden
+const picker = $("picker");
+const pv = { h: 0, m: 0, s: 0 };
+let pickTarget = "min";
+
+function renderPicker() {
+  for (const spin of picker.querySelectorAll(".spin")) {
+    spin.querySelector("input").value = pad(pv[spin.dataset.unit]);
+  }
+  $("pickHead").textContent = `${pad(pv.h)}:${pad(pv.m)}:${pad(pv.s)}`;
+}
+function openPicker(target) {
+  pickTarget = target;
+  [pv.h, pv.m, pv.s] = hms(target === "min" ? state.min : state.max);
+  renderPicker();
+  picker.showModal();
+}
+for (const spin of picker.querySelectorAll(".spin")) {
+  const unit = spin.dataset.unit;
+  const max = Number(spin.dataset.max);
+  const step = d => { pv[unit] = (pv[unit] + d + max + 1) % (max + 1); renderPicker(); };
+  spin.querySelectorAll("button").forEach(b => b.addEventListener("click", () => step(Number(b.dataset.d))));
+  spin.addEventListener("wheel", e => { e.preventDefault(); step(e.deltaY < 0 ? 1 : -1); }, { passive: false });
+  const inp = spin.querySelector("input");
+  inp.addEventListener("focus", () => inp.select());
+  inp.addEventListener("change", () => {
+    const n = parseInt(inp.value.replace(/\D/g, ""), 10);
+    pv[unit] = Number.isNaN(n) ? 0 : Math.min(Math.max(n, 0), max);
+    renderPicker();
+  });
+}
+$("btnMin").addEventListener("click", () => openPicker("min"));
+$("btnMax").addEventListener("click", () => openPicker("max"));
+$("pickCancel").addEventListener("click", () => picker.close());
+$("pickOk").addEventListener("click", () => {
+  picker.querySelectorAll(".spin input").forEach(i => i.dispatchEvent(new Event("change")));
+  const sec = pv.h * 3600 + pv.m * 60 + pv.s;
+  if (pickTarget === "min") setMin(sec); else setMax(sec);
+  picker.close();
+  render();
+});
+
+render();
+</script>
+</body>
+</html>

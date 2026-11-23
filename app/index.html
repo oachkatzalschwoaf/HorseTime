@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#00695c">
+<meta name="description" content="Zeit-Distanz-Rechner für den Fahrsport: Zeitfenster, Zwischenzeiten, Live-Tracking mit Karte.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="HorseTime">
+<title>HorseTime</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="css/app.css">
+<script>
+  // Design und Schriftgröße vor dem ersten Zeichnen setzen (kein Aufblitzen)
+  try {
+    const s = JSON.parse(localStorage.getItem('horsetime.settings') || '{}');
+    if (s.theme && s.theme !== 'auto') document.documentElement.dataset.theme = s.theme;
+    if (s.scale) document.documentElement.style.setProperty('--scale', s.scale);
+  } catch (e) { /* egal */ }
+</script>
+<script type="module" src="js/app.js"></script>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-plan" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 3h6v3H9zM8.5 11h7M8.5 15h5"/></symbol>
+    <symbol id="i-live" viewBox="0 0 24 24"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V9.5M10 2.5h4M12 2.5V6M18.5 7l1.5-1.5"/></symbol>
+    <symbol id="i-calc" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8.5 7.5h7M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16.5h.01M12 16.5h.01M15.5 16.5h.01"/></symbol>
+    <symbol id="i-runs" viewBox="0 0 24 24"><circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><path d="M8 18h7.5a3.5 3.5 0 0 0 0-7h-7a3.5 3.5 0 0 1 0-7H16"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+    <symbol id="i-follow" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="2" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></symbol>
+    <symbol id="i-fit" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol>
+    <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4M5 4h12l-2.5 4.5L17 13H5"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="currentColor"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5" fill="currentColor"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15V4M7 9l5-5 5 5M5 20h14"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol>
+    <symbol id="i-print" viewBox="0 0 24 24"><path d="M7 9V4h10v5M7 17H5a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-2"/><rect x="7" y="14" width="10" height="6"/></symbol>
+    <symbol id="i-full" viewBox="0 0 24 24"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+    <symbol id="i-route" viewBox="0 0 24 24"><path d="M5 19c3-1 3-5 7-6s4-5 7-6"/><circle cx="5" cy="19" r="1.8"/><circle cx="19" cy="7" r="1.8"/></symbol>
+    <symbol id="i-text" viewBox="0 0 24 24"><path d="M3 19 8 6l5 13M4.8 15h6.4M15 19l3-8 3 8M15.9 17h4.2"/></symbol>
+  </defs>
+</svg>
+
+<div class="app">
+  <nav class="tabs" aria-label="Bereiche">
+    <a href="#plan" data-tab="plan"><svg class="ic" aria-hidden="true"><use href="#i-plan"/></svg><span>Plan</span></a>
+    <a href="#live" data-tab="live"><svg class="ic" aria-hidden="true"><use href="#i-live"/></svg><span>Fahrt</span><i class="tab-dot" id="tabLiveDot" hidden></i></a>
+    <a href="#calc" data-tab="calc"><svg class="ic" aria-hidden="true"><use href="#i-calc"/></svg><span>Rechner</span></a>
+    <a href="#runs" data-tab="runs"><svg class="ic" aria-hidden="true"><use href="#i-runs"/></svg><span>Verlauf</span></a>
+    <a href="#settings" data-tab="settings"><svg class="ic" aria-hidden="true"><use href="#i-settings"/></svg><span>Optionen</span></a>
+  </nav>
+
+  <main class="main">
+
+    <!-- ================= PLAN ================= -->
+    <section class="view" id="view-plan" data-view="plan" hidden>
+      <header class="view-head">
+        <h1>Planung</h1>
+        <button type="button" class="icon-btn" id="planPrint" aria-label="Zwischenzeiten drucken" title="Drucken"><svg class="ic"><use href="#i-print"/></svg></button>
+      </header>
+      <div class="phase-bar" id="phaseBar" role="tablist" aria-label="Phasen"></div>
+
+      <div class="plan-grid">
+        <form class="card form" id="phaseForm" autocomplete="off">
+          <div class="row-head">
+            <input id="pName" class="name-input" aria-label="Name der Phase" maxlength="40" enterkeyhint="done">
+            <button type="button" class="icon-btn" id="pCopy" aria-label="Phase duplizieren" title="Duplizieren"><svg class="ic"><use href="#i-copy"/></svg></button>
+            <button type="button" class="icon-btn" id="pDelete" aria-label="Phase löschen" title="Löschen"><svg class="ic"><use href="#i-trash"/></svg></button>
+          </div>
+
+          <div class="field">
+            <label class="lbl" for="pDist">Distanz</label>
+            <span class="inp"><input id="pDist" inputmode="numeric" enterkeyhint="next" placeholder="7000"><span class="unit">m</span></span>
+            <small class="hint" id="pDistHint"></small>
+          </div>
+
+          <div class="field">
+            <span class="lbl">Vorgabe laut Ausschreibung</span>
+            <div class="seg" id="pMode">
+              <button type="button" data-v="speed">Höchsttempo</button>
+              <button type="button" data-v="time">Erlaubte Zeit</button>
+            </div>
+          </div>
+
+          <div class="field" data-mode="speed">
+            <label class="lbl" for="pSpeed">Höchsttempo</label>
+            <span class="inp"><input id="pSpeed" inputmode="decimal" enterkeyhint="next" placeholder="15"><span class="unit">km/h</span></span>
+            <div class="chips" id="pSpeedChips"></div>
+          </div>
+
+          <div class="field" data-mode="time">
+            <label class="lbl" for="pTmax">Erlaubte Zeit</label>
+            <span class="inp"><input id="pTmax" inputmode="decimal" enterkeyhint="next" placeholder="mm:ss"><span class="unit">mm:ss</span></span>
+            <small class="hint" id="pTmaxHint"></small>
+          </div>
+
+          <div class="field">
+            <span class="lbl">Mindestzeit</span>
+            <div class="seg" id="pMinRule">
+              <button type="button" data-v="auto">Regel</button>
+              <button type="button" data-v="manual">Manuell</button>
+              <button type="button" data-v="none">Keine</button>
+            </div>
+            <small class="hint" id="pMinHint"></small>
+          </div>
+
+          <div class="field" data-min="manual">
+            <label class="lbl" for="pTmin">Mindestzeit</label>
+            <span class="inp"><input id="pTmin" inputmode="decimal" enterkeyhint="next" placeholder="mm:ss"><span class="unit">mm:ss</span></span>
+            <small class="hint" id="pTminHint"></small>
+          </div>
+
+          <div class="field">
+            <span class="lbl">Sicherheitspuffer vor der erlaubten Zeit</span>
+            <div class="chips" id="pBuffer"></div>
+          </div>
+
+          <div class="field">
+            <label class="lbl" for="pStep">Zwischenzeiten alle</label>
+            <span class="inp"><input id="pStep" inputmode="numeric" enterkeyhint="done" placeholder="1000"><span class="unit">m</span></span>
+            <div class="chips" id="pStepChips"></div>
+          </div>
+
+          <div class="field">
+            <span class="lbl">Strecke für die Karte (optional)</span>
+            <div class="btn-row">
+              <button type="button" class="btn" id="pRouteLoad"><svg class="ic"><use href="#i-route"/></svg>GPX laden</button>
+              <button type="button" class="btn ghost" id="pRouteClear">Entfernen</button>
+            </div>
+            <small class="hint" id="pRouteHint"></small>
+          </div>
+        </form>
+
+        <div class="plan-side">
+          <div class="card result" id="planResult" aria-live="polite"></div>
+          <div class="card" id="planSplits"></div>
+        </div>
+      </div>
+
+      <details class="card help">
+        <summary>Regeln &amp; Erklärung</summary>
+        <div class="prose">
+          <p><b>Erlaubte Zeit</b> = Distanz ÷ Höchsttempo (abgerundet auf volle Sekunden). Steht die Zeit in der Ausschreibung, „Erlaubte Zeit“ wählen und direkt eintragen.</p>
+          <p><b>Mindestzeit</b> nach Regel (FEI/ÖTO/LPO): Strecke über 3000 m → 2 Minuten unter der erlaubten Zeit, sonst 1 Minute. Abweichende Vorgaben unter „Manuell“ eintragen.</p>
+          <p><b>Zielzeit</b> = erlaubte Zeit minus Sicherheitspuffer. Die Zwischenzeiten (Spalte „Ziel“) beziehen sich auf diese Zeit. Mindest- und erlaubte Zeit sind anteilig zur sicheren Seite gerundet.</p>
+          <p>Über- und Unterschreiten des Zeitfensters kostet Strafpunkte (typisch 0,25 je angefangene Sekunde, einstellbar unter Optionen).</p>
+          <p><b>Fahrt:</b> Start tippen (oder „Start um“ Uhrzeit). Bei jedem Kilometer-Schild „Km-Schild“ tippen – das korrigiert die GPS-Distanz und zeigt Vorsprung/Rückstand. Funktioniert auch ganz ohne GPS.</p>
+        </div>
+      </details>
+    </section>
+
+    <!-- ================= LIVE ================= -->
+    <section class="view" id="view-live" data-view="live" hidden>
+      <div class="live" id="live" data-state="ready">
+        <div class="live-info">
+          <div class="live-head">
+            <select id="livePhase" aria-label="Phase"></select>
+            <button type="button" class="gps-badge" id="gpsBadge" data-gps="off">GPS aus</button>
+            <button type="button" class="icon-btn" id="liveScale" aria-label="Schrift größer" title="Schriftgröße"><svg class="ic"><use href="#i-text"/></svg></button>
+            <button type="button" class="icon-btn" id="liveFull" aria-label="Vollbild" title="Vollbild"><svg class="ic"><use href="#i-full"/></svg></button>
+            <button type="button" class="icon-btn" id="liveMenuBtn" aria-label="Weitere Aktionen" title="Mehr"><svg class="ic"><use href="#i-more"/></svg></button>
+          </div>
+
+          <div class="clock-card" id="clockCard">
+            <div class="clock" id="liveClock">00:00</div>
+            <div class="delta" id="liveDelta">bereit</div>
+            <div class="win-line" id="liveWin"></div>
+          </div>
+
+          <div class="timeline" id="liveTimeline"></div>
+
+          <div class="tiles" id="liveTiles">
+            <div class="tile"><span class="k">Tempo jetzt</span><b class="v" id="tSpeed">–</b><span class="u">km/h</span></div>
+            <div class="tile"><span class="k" id="tAvgK">Ø Tempo</span><b class="v" id="tAvg">–</b><span class="u" id="tAvgU">km/h</span></div>
+            <div class="tile wide" id="tCorrTile"><span class="k" id="tCorrK">Tempo-Fenster</span><b class="v" id="tCorr">–</b><span class="u" id="tCorrU">km/h</span></div>
+            <div class="tile"><span class="k">Gefahren</span><b class="v" id="tDist">–</b><span class="u" id="tDistU">km</span><span class="bar"><i id="tDistBar"></i></span></div>
+            <div class="tile" id="tEtaTile"><span class="k">Ankunft (hochgerechnet)</span><b class="v" id="tEta">–</b><span class="u" id="tEtaU"></span></div>
+            <div class="tile wide" id="tNextTile"><span class="k" id="tNextK">Nächstes Schild</span><b class="v" id="tNext">–</b><span class="u" id="tNextU"></span></div>
+          </div>
+
+          <div class="result-card" id="liveResult" hidden></div>
+          <ol class="split-log" id="splitLog" aria-label="Passierte Schilder"></ol>
+        </div>
+
+        <div class="live-map tmap" id="liveMap">
+          <div class="map-ctl">
+            <button type="button" data-map="in" aria-label="Hineinzoomen"><svg class="ic"><use href="#i-plus"/></svg></button>
+            <button type="button" data-map="out" aria-label="Herauszoomen"><svg class="ic"><use href="#i-minus"/></svg></button>
+            <button type="button" data-map="follow" aria-label="Position folgen" aria-pressed="true"><svg class="ic"><use href="#i-follow"/></svg></button>
+            <button type="button" data-map="fit" aria-label="Ganze Strecke"><svg class="ic"><use href="#i-fit"/></svg></button>
+          </div>
+          <div class="map-attr"></div>
+        </div>
+
+        <div class="live-ctl" id="liveCtl">
+          <button type="button" class="btn big primary" id="btnStart" data-only="ready"><svg class="ic"><use href="#i-play"/></svg>Start</button>
+          <button type="button" class="btn big" id="btnArm" data-only="ready"><svg class="ic"><use href="#i-clock"/></svg>Start um …</button>
+          <button type="button" class="btn big primary" id="btnStartNow" data-only="armed"><svg class="ic"><use href="#i-play"/></svg>Jetzt</button>
+          <button type="button" class="btn big" id="btnDisarm" data-only="armed">Abbrechen</button>
+          <button type="button" class="btn big accent" id="btnMarker" data-only="running"><svg class="ic"><use href="#i-flag"/></svg><span id="btnMarkerTxt">Km-Schild</span></button>
+          <button type="button" class="btn big danger hold" id="btnStop" data-only="running"><svg class="ic"><use href="#i-stop"/></svg>Ziel</button>
+          <button type="button" class="btn big primary" id="btnNew" data-only="finished">Neue Fahrt</button>
+          <button type="button" class="btn big" id="btnGpx" data-only="finished"><svg class="ic"><use href="#i-download"/></svg>GPX</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= RECHNER ================= -->
+    <section class="view" id="view-calc" data-view="calc" hidden>
+      <header class="view-head"><h1>Rechner</h1></header>
+      <div class="calc-grid">
+        <div class="card form">
+          <div class="field">
+            <span class="lbl">Was berechnen?</span>
+            <div class="seg" id="cWhat">
+              <button type="button" data-v="time">Zeit</button>
+              <button type="button" data-v="speed">Tempo</button>
+              <button type="button" data-v="dist">Distanz</button>
+            </div>
+          </div>
+          <div class="field" data-calc="dist">
+            <label class="lbl" for="cDist">Distanz</label>
+            <span class="inp"><input id="cDist" inputmode="numeric" placeholder="7000"><span class="unit">m</span></span>
+            <small class="hint" id="cDistHint"></small>
+          </div>
+          <div class="field" data-calc="time">
+            <label class="lbl" for="cTime">Zeit</label>
+            <span class="inp"><input id="cTime" inputmode="decimal" placeholder="mm:ss"><span class="unit">mm:ss</span></span>
+            <small class="hint" id="cTimeHint"></small>
+          </div>
+          <div class="field" data-calc="speed">
+            <label class="lbl" for="cSpeed">Tempo</label>
+            <span class="inp"><input id="cSpeed" inputmode="decimal" placeholder="15"><span class="unit">km/h</span></span>
+            <div class="chips" id="cSpeedChips"></div>
+          </div>
+          <dl class="kv" id="cMore"></dl>
+        </div>
+
+        <div class="card form">
+          <h2>Tempo umrechnen</h2>
+          <div class="field"><label class="lbl" for="uKmh">km/h</label><span class="inp"><input id="uKmh" inputmode="decimal" data-conv="kmh"></span></div>
+          <div class="field"><label class="lbl" for="uMpm">Meter pro Minute</label><span class="inp"><input id="uMpm" inputmode="decimal" data-conv="mpm"><span class="unit">m/min</span></span></div>
+          <div class="field"><label class="lbl" for="uPace">Pace</label><span class="inp"><input id="uPace" inputmode="decimal" placeholder="m:ss" data-conv="pace"><span class="unit">min/km</span></span></div>
+          <div class="field"><label class="lbl" for="uMps">Meter pro Sekunde</label><span class="inp"><input id="uMps" inputmode="decimal" data-conv="mps"><span class="unit">m/s</span></span></div>
+          <div class="field">
+            <label class="lbl" for="uKm">Strecke in 10 Minuten</label>
+            <output id="uKm" class="out">–</output>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= VERLAUF ================= -->
+    <section class="view" id="view-runs" data-view="runs" hidden>
+      <header class="view-head"><h1>Verlauf</h1></header>
+      <div class="run-list" id="runList"></div>
+      <p class="empty" id="runEmpty" hidden>Noch keine Fahrten gespeichert. Abgeschlossene Fahrten erscheinen hier – mit Karte, Zwischenzeiten und GPX-Download.</p>
+    </section>
+
+    <!-- ================= OPTIONEN ================= -->
+    <section class="view" id="view-settings" data-view="settings" hidden>
+      <header class="view-head"><h1>Optionen</h1></header>
+      <div class="settings-grid">
+        <div class="card form">
+          <h2>Anzeige</h2>
+          <div class="field">
+            <span class="lbl">Design</span>
+            <div class="seg" data-set="theme">
+              <button type="button" data-v="auto">Auto</button>
+              <button type="button" data-v="light">Hell</button>
+              <button type="button" data-v="dark">Dunkel</button>
+              <button type="button" data-v="sun">Sonne</button>
+            </div>
+            <small class="hint">„Sonne“: maximaler Kontrast für grelles Licht.</small>
+          </div>
+          <div class="field">
+            <label class="lbl" for="sScale">Schriftgröße <output id="sScaleOut"></output></label>
+            <input type="range" id="sScale" data-set="scale" min="0.85" max="2" step="0.05">
+            <div class="chips" id="sScaleChips"></div>
+          </div>
+        </div>
+
+        <div class="card form">
+          <h2>Karte</h2>
+          <div class="field">
+            <label class="lbl" for="sTiles">Kartenquelle</label>
+            <select id="sTiles" data-set="tiles">
+              <option value="osm">OpenStreetMap</option>
+              <option value="topo">OpenTopoMap (Gelände)</option>
+              <option value="custom">Eigene URL</option>
+              <option value="none">Keine Karte (nur Track)</option>
+            </select>
+          </div>
+          <div class="field" id="sTileUrlField">
+            <label class="lbl" for="sTileUrl">Kachel-URL</label>
+            <input id="sTileUrl" data-set="tileUrl" placeholder="https://…/{z}/{x}/{y}.png" spellcheck="false" autocapitalize="off">
+            <small class="hint">Platzhalter {z}, {x}, {y}, optional {s}. Nutzungsbedingungen des Anbieters beachten.</small>
+          </div>
+          <label class="switch"><input type="checkbox" data-set="bigLabels"><span>Große Kartenschrift</span></label>
+          <label class="switch"><input type="checkbox" data-set="liveMap"><span>Karte während der Fahrt</span></label>
+          <p class="hint">Angesehene Kartenausschnitte werden für offline gespeichert. Tipp: Gelände vorab bei Empfang auf der Karte ansehen.</p>
+        </div>
+
+        <div class="card form">
+          <h2>Fahrt &amp; GPS</h2>
+          <label class="switch"><input type="checkbox" data-set="useGps"><span>GPS verwenden</span></label>
+          <div class="field">
+            <label class="lbl" for="sAcc">GPS-Punkte ignorieren ab Ungenauigkeit <output id="sAccOut"></output></label>
+            <input type="range" id="sAcc" data-set="maxAcc" min="10" max="100" step="5">
+          </div>
+          <div class="field">
+            <label class="lbl" for="sMarker">Abstand der Kilometer-Schilder</label>
+            <select id="sMarker" data-set="markerStepM">
+              <option value="500">500 m</option>
+              <option value="1000">1000 m</option>
+            </select>
+          </div>
+          <label class="switch"><input type="checkbox" data-set="wakeLock"><span>Bildschirm während der Fahrt anlassen</span></label>
+          <div class="field">
+            <label class="lbl" for="sPenalty">Strafpunkte je angefangene Sekunde</label>
+            <span class="inp"><input id="sPenalty" data-set="penaltyPerSec" inputmode="decimal"></span>
+          </div>
+          <div class="field">
+            <label class="lbl" for="sPresets">Tempo-Schnellwahl (km/h)</label>
+            <input id="sPresets" data-set="speedPresets" placeholder="7; 12; 13; 14; 15">
+            <small class="hint">Mehrere Werte mit Leerzeichen oder Strichpunkt trennen.</small>
+          </div>
+        </div>
+
+        <div class="card form">
+          <h2>Signale</h2>
+          <label class="switch"><input type="checkbox" data-set="beep"><span>Töne</span></label>
+          <label class="switch"><input type="checkbox" data-set="vibrate"><span>Vibration</span></label>
+          <label class="switch"><input type="checkbox" data-set="speech"><span>Sprachansage</span></label>
+          <label class="switch"><input type="checkbox" data-set="autoSplits"><span>Ansage bei jedem GPS-Kilometer</span></label>
+          <label class="switch"><input type="checkbox" data-set="timeAlerts"><span>Hinweis bei Mindestzeit und kurz vor der erlaubten Zeit</span></label>
+          <button type="button" class="btn" id="sTest">Signale testen</button>
+        </div>
+
+        <div class="card form">
+          <h2>App &amp; Daten</h2>
+          <button type="button" class="btn primary" id="sInstall" hidden>App installieren</button>
+          <p class="hint" id="sIosHint" hidden>iPhone/iPad: In Safari „Teilen“ → „Zum Home-Bildschirm“.</p>
+          <div class="btn-row">
+            <button type="button" class="btn" id="sExport"><svg class="ic"><use href="#i-download"/></svg>Backup speichern</button>
+            <button type="button" class="btn" id="sImport"><svg class="ic"><use href="#i-upload"/></svg>Backup laden</button>
+          </div>
+          <div class="btn-row">
+            <a class="btn" id="sLegacy" href="legacy.html"><svg class="ic"><use href="#i-clock"/></svg>Alte Version (TimeTable)</a>
+          </div>
+          <p class="hint">Die einfache Originalversion: Distanz, Schritte, min./max. Dauer → Zeittabelle.</p>
+          <div class="btn-row">
+            <button type="button" class="btn" id="sReload">Neu laden / Update</button>
+            <button type="button" class="btn danger ghost" id="sWipe">Alle Daten löschen</button>
+          </div>
+          <p class="hint" id="sInfo"></p>
+        </div>
+
+        <div class="card prose">
+          <h2>Über</h2>
+          <p>HorseTime – Zeit-Distanz-Rechner für den Fahrsport. Alle Daten bleiben auf diesem Gerät. Die App funktioniert nach dem ersten Laden offline; nur Kartenkacheln kommen aus dem Netz.</p>
+          <p>Kartendaten © OpenStreetMap-Mitwirkende (ODbL). OpenTopoMap: CC-BY-SA.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<dialog id="confirm" class="dlg">
+  <p id="confirmText"></p>
+  <div class="dlg-actions">
+    <button type="button" class="btn ghost" id="confirmCancel">Abbrechen</button>
+    <button type="button" class="btn primary" id="confirmOk">OK</button>
+  </div>
+</dialog>
+
+<dialog id="armDlg" class="dlg">
+  <h2>Start um</h2>
+  <p class="hint">Die Stoppuhr startet automatisch zur eingestellten Uhrzeit, mit Countdown-Signalen.</p>
+  <input type="time" id="armTime" step="1" class="time-input">
+  <div class="chips" id="armChips"></div>
+  <div class="dlg-actions">
+    <button type="button" class="btn ghost" id="armCancel">Abbrechen</button>
+    <button type="button" class="btn primary" id="armOk">Scharf schalten</button>
+  </div>
+</dialog>
+
+<dialog id="liveMenu" class="dlg">
+  <h2>Fahrt</h2>
+  <div class="menu-group" data-only="running">
+    <span class="lbl">Startzeit korrigieren</span>
+    <div class="btn-row adjust">
+      <button type="button" class="btn" data-adj="-5000">−5 s</button>
+      <button type="button" class="btn" data-adj="-1000">−1 s</button>
+      <button type="button" class="btn" data-adj="1000">+1 s</button>
+      <button type="button" class="btn" data-adj="5000">+5 s</button>
+    </div>
+    <small class="hint">„+“: Start war später als getippt (Zeit wird kürzer).</small>
+  </div>
+  <button type="button" class="btn wide" id="mUndo" data-only="running"><svg class="ic"><use href="#i-undo"/></svg>Letztes Schild zurücknehmen</button>
+  <button type="button" class="btn wide" id="mMap"><svg class="ic"><use href="#i-route"/></svg>Karte ein/aus</button>
+  <button type="button" class="btn wide danger ghost" id="mDiscard" data-only="running armed finished"><svg class="ic"><use href="#i-trash"/></svg>Fahrt verwerfen</button>
+  <div class="dlg-actions"><button type="button" class="btn primary" id="mClose">Schließen</button></div>
+</dialog>
+
+<dialog id="runDlg" class="dlg sheet">
+  <header class="sheet-head">
+    <h2 id="rdTitle">Fahrt</h2>
+    <button type="button" class="icon-btn" id="rdClose" aria-label="Schließen"><svg class="ic"><use href="#i-close"/></svg></button>
+  </header>
+  <div class="sheet-body">
+    <div id="rdSummary"></div>
+    <div class="tmap rd-map" id="rdMap">
+      <div class="map-ctl">
+        <button type="button" data-map="in" aria-label="Hineinzoomen"><svg class="ic"><use href="#i-plus"/></svg></button>
+        <button type="button" data-map="out" aria-label="Herauszoomen"><svg class="ic"><use href="#i-minus"/></svg></button>
+        <button type="button" data-map="fit" aria-label="Ganze Strecke"><svg class="ic"><use href="#i-fit"/></svg></button>
+      </div>
+      <div class="map-attr"></div>
+    </div>
+    <div id="rdSplits"></div>
+    <div class="btn-row">
+      <button type="button" class="btn primary" id="rdGpx"><svg class="ic"><use href="#i-download"/></svg>GPX</button>
+      <button type="button" class="btn" id="rdRoute"><svg class="ic"><use href="#i-route"/></svg>Als Strecke für Phase</button>
+      <button type="button" class="btn danger ghost" id="rdDelete"><svg class="ic"><use href="#i-trash"/></svg>Löschen</button>
+    </div>
+  </div>
+</dialog>
+
+</body>
+</html>
