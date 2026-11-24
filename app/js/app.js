@@ -9,7 +9,7 @@ import { initCalc } from './ui-calc.js';
 import { initRuns, refreshRuns } from './ui-runs.js';
 import { initSettings } from './ui-settings.js';
 
-export const VERSION = '1.0.1';
+export const VERSION = '1.0.2';
 const VIEWS = ['plan', 'live', 'calc', 'runs', 'settings'];
 const install = { prompt: null, onAvailable: null };
 

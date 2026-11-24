@@ -34,10 +34,21 @@ Formeln und Regeln: [konzept_formelsammlung_fahrsport_zeit_distanz_rechner.md](k
 
 ## Aufs Handy bringen
 
-Standort, Offline-Betrieb und Installation funktionieren nur über **HTTPS**. Den Ordner `app/` unverändert auf einen statischen HTTPS-Hoster legen, z. B. GitHub Pages, Netlify oder Cloudflare Pages. Ein Build-Schritt ist nicht nötig.
+Standort, Offline-Betrieb und Installation funktionieren nur über **HTTPS**. Den Ordner `app/` unverändert auf einen statischen HTTPS-Hoster legen, z. B. einen eigenen Apache-Webspace, GitHub Pages, Netlify oder Cloudflare Pages. Ein Build-Schritt ist nicht nötig.
+
+Bei Apache die versteckte Datei `app/.htaccess` mit hochladen. Sie leitet `http://` auf `https://` um; manche FTP-Programme blenden solche Dateien aus.
+
+Danach prüfen:
+
+```sh
+npm run check -- https://<adresse>/
+```
+
+Das Werkzeug prüft Umleitung, Dateien, Version, Service Worker und Installierbarkeit.
 
 Dann die Adresse am Handy öffnen und installieren:
-- **Android (Chrome):** Menü → „App installieren“ oder Optionen → „App installieren“
+- **Android (Chrome):** Optionen → „App installieren“ oder Browser-Menü → „App installieren“
+- **Android (Brave, Firefox u. a.):** Browser-Menü (⋮) → „App installieren“ bzw. „Zum Startbildschirm hinzufügen“. Diese Browser zeigen meist keinen eigenen Installieren-Knopf in der App.
 - **iPhone/iPad (Safari):** Teilen → „Zum Home-Bildschirm“
 
 ## Entwicklung

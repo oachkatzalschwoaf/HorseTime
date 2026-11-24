@@ -16,7 +16,6 @@ export function latToY(lat) {
   const s = Math.sin(Math.max(-MAX_LAT, Math.min(MAX_LAT, lat)) * RAD);
   return 0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI);
 }
-export const xToLon = x => x * 360 - 180;
 export function yToLat(y) {
   const n = Math.PI - 2 * Math.PI * y;
   return Math.atan(Math.sinh(n)) / RAD;

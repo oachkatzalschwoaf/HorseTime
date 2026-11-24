@@ -46,17 +46,25 @@ export function initSettings({ version, install }) {
 
   // Installation
   const btn = $('#sInstall');
-  install.onAvailable = () => { btn.hidden = false; };
-  if (install.prompt) btn.hidden = false;
+  const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  // Ohne beforeinstallprompt (z. B. Brave, Firefox) bleibt nur das Browser-Menü
+  const showInstall = () => {
+    btn.hidden = !install.prompt;
+    $('#sMenuHint').hidden = standalone || ios || !!install.prompt;
+  };
+  install.onAvailable = showInstall;
   btn.addEventListener('click', async () => {
     if (!install.prompt) return;
     install.prompt.prompt();
     const res = await install.prompt.userChoice.catch(() => null);
-    if (res?.outcome === 'accepted') { btn.hidden = true; toast('App wird installiert'); }
+    if (res?.outcome === 'accepted') toast('App wird installiert');
     install.prompt = null;
+    showInstall();
   });
-  const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
-  $('#sIosHint').hidden = standalone || !/iphone|ipad|ipod/i.test(navigator.userAgent);
+  window.addEventListener('appinstalled', () => { install.prompt = null; showInstall(); $('#sMenuHint').hidden = true; });
+  showInstall();
+  $('#sIosHint').hidden = standalone || !ios;
 
   // Backup
   $('#sExport').addEventListener('click', async () => {

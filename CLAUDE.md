@@ -13,7 +13,8 @@ Git repo on branch `main` with remote `origin` (GitHub). The user pushes manuall
 - `app/` — the PWA (deployable folder). Vanilla ES modules, no build step, no runtime dependencies, no CDN.
 - `app/legacy.html` — self-contained single-file port of the old Android app "TimeTable" (min/max range split per step). It shares no code with the new app, is linked from Optionen, and links back to `./#settings` after a confirmation dialog. It links the same manifest and registers the same service worker, so it is offline-capable and installable when opened directly. Its header comment lists deliberate deviations from the Android original; update that list when changing its behavior.
 - `tests/` — `node:test` unit tests for the pure logic.
-- `tools/` — dev server, browser smoke test, icon generator (all dependency-free Node scripts).
+- `app/.htaccess` — Apache: http→https redirect, manifest MIME type. Dotfiles are excluded from `ASSETS` and the asset test.
+- `tools/` — dev server, browser smoke test, deployed-site check, icon generator (all dependency-free Node scripts; `cdp.mjs` holds the shared headless-browser/CDP code).
 - `konzept_formelsammlung_fahrsport_zeit_distanz_rechner.md` — spec: formulas, time-window rules, UI requirements.
 - `README.md` — user-facing overview (German): features, phone install, deployment, development.
 
@@ -25,7 +26,8 @@ npm test                    # all unit tests
 node --test --test-name-pattern="Zwischenzeiten" tests/calc.test.mjs   # single test
 npm run smoke               # Edge/Chrome headless via CDP: simulated run, offline reload, installability, screenshots
 npm run smoke -- --out <dir>   # screenshots elsewhere (default %TEMP%/horsetime-smoke); BROWSER=<path> to pick a browser
-npm run icons               # regenerate app/icons/* (PNG + SVG) from tools/make-icons.mjs
+npm run icons               # regenerate app/img/* (PNG + SVG) from tools/make-icons.mjs
+npm run check -- https://horse.cwinkler.org/   # check a deployed site: http→https redirect, every ASSETS file + MIME type, deployed VERSION, manifest, SW active, Chrome installability
 ```
 
 `npm run smoke` exits non-zero on console errors, uncaught exceptions or failed checks. Look at the screenshots after UI changes.
@@ -48,4 +50,6 @@ npm run icons               # regenerate app/icons/* (PNG + SVG) from tools/make
 - Bump `VERSION` in `app/sw.js` (and `VERSION` in `app/js/app.js`) for every change to app files. Otherwise installed clients keep the cached old version.
 - Every file in `app/` must be listed in `ASSETS` in `sw.js`. `tests/gpx-sw.test.mjs` enforces this.
 - Keep it offline-capable: no external scripts, fonts or styles. Only map tiles come from the network.
-- Phone use needs HTTPS (geolocation, service worker, install). Deploy the `app/` folder to any static HTTPS host.
+- Phone use needs HTTPS (geolocation, service worker, install). Deploy the `app/` folder (including `.htaccess`) to any static HTTPS host.
+- Production: https://horse.cwinkler.org/ on Apache. After the user uploads, run `npm run check` against it.
+- Never name a folder in `app/` `icons` (or `manual`, `cgi-bin`, `error`). Apache's default `Alias /icons/` serves the server's own files there. That made all app icons 404, broke the SW precache (`cache.addAll`) and installability. `tests/gpx-sw.test.mjs` enforces this.

@@ -41,9 +41,22 @@ test('Service Worker: alle App-Dateien sind im Offline-Cache gelistet', () => {
   const sw = readFileSync(join(root, 'sw.js'), 'utf8');
   const listed = new Set([...sw.matchAll(/'\.\/([^']*)'/g)].map(m => m[1]).filter(Boolean));
   const walk = dir => readdirSync(dir).flatMap(f => (statSync(join(dir, f)).isDirectory() ? walk(join(dir, f)) : [join(dir, f)]));
-  const files = walk(root).map(f => relative(root, f).split(sep).join('/')).filter(f => f !== 'sw.js');
+  const files = walk(root).map(f => relative(root, f).split(sep).join('/')).filter(f => f !== 'sw.js' && !f.split('/').some(s => s.startsWith('.')));
   const missing = files.filter(f => !listed.has(f));
   assert.deepEqual(missing, [], 'in sw.js ASSETS ergänzen');
   const extra = [...listed].filter(f => !files.includes(f));
   assert.deepEqual(extra, [], 'in sw.js gelistet, aber nicht vorhanden');
+});
+
+test('VERSION in sw.js und app.js stimmt überein', () => {
+  const v = f => readFileSync(new URL(f, import.meta.url), 'utf8').match(/VERSION = '([^']+)'/)?.[1];
+  assert.ok(v('../app/sw.js'), 'VERSION in sw.js fehlt');
+  assert.equal(v('../app/js/app.js'), v('../app/sw.js'));
+});
+
+test('Keine Ordnernamen, die Apache per Standard-Alias überdeckt', () => {
+  const root = new URL('../app/', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+  const reserved = ['icons', 'manual', 'cgi-bin', 'error'];
+  const clash = readdirSync(root).filter(f => reserved.includes(f.toLowerCase()) && statSync(join(root, f)).isDirectory());
+  assert.deepEqual(clash, [], '/icons/ usw. liefert auf Apache die Server-eigenen Dateien');
 });

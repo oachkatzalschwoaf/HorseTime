@@ -6,7 +6,7 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', 'app', 'icons');
+const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', 'app', 'img');
 const RAD = Math.PI / 180;
 
 const C = { x: 256, y: 240 };
@@ -107,5 +107,5 @@ const files = {
 };
 for (const [name, data] of Object.entries(files)) {
   writeFileSync(join(OUT, name), data);
-  console.log('geschrieben:', join('app', 'icons', name));
+  console.log('geschrieben:', join('app', 'img', name));
 }

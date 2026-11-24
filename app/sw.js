@@ -1,7 +1,7 @@
 // Service Worker: App-Dateien offline vorhalten, angesehene Kartenkacheln zwischenspeichern.
 // Bei JEDER Änderung an App-Dateien VERSION erhöhen – sonst bekommen Nutzer die alte Fassung aus dem Cache.
 
-const VERSION = '1.0.1';
+const VERSION = '1.0.2';
 const SHELL = `ht-shell-${VERSION}`;
 const TILES = 'ht-tiles-v1';
 const TILE_MAX_AGE = 7 * 24 * 3600 * 1000; // danach neu laden (offline: alte Kachel weiter nutzen)
@@ -29,11 +29,11 @@ const ASSETS = [
   './js/ui-plan.js',
   './js/ui-runs.js',
   './js/ui-settings.js',
-  './icons/apple-touch-icon.png',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
-  './icons/icon-maskable-512.png',
-  './icons/icon.svg',
+  './img/apple-touch-icon.png',
+  './img/icon-192.png',
+  './img/icon-512.png',
+  './img/icon-maskable-512.png',
+  './img/icon.svg',
 ];
 
 self.addEventListener('install', event => {
