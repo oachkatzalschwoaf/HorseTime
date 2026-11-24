@@ -239,6 +239,15 @@ try {
   })()`);
   check(await evaluate(`document.title.includes('TimeTable') && !!document.querySelector('a.back[href="./#settings"]')`), 'Alte Version lädt offline, mit Link zurück');
   await shot('13-alte-version');
+  const legacyInstall = await S('Page.getInstallabilityErrors').catch(() => null);
+  if (legacyInstall) check(legacyInstall.installabilityErrors.length === 0, `Alte Version: installierbar ${legacyInstall.installabilityErrors.map(e => e.errorId).join(', ')}`);
+  await evaluate(`document.querySelector('a.back').click()`);
+  await sleep(300);
+  check(await evaluate(`document.getElementById('leaveDlg').open && !document.getElementById('leaveHint').hidden && location.pathname.endsWith('/legacy.html')`), 'Zurück zur neuen Version fragt nach (mit Hinweis auf Eingaben)');
+  await shot('14-abfrage-zurueck');
+  await evaluate(`document.getElementById('leaveOk').click()`);
+  await waitFor(`location.hash === '#settings' && !!window.__ht && !document.querySelector('#view-settings').hidden`);
+  check(true, 'Nach „Wechseln“ zurück in HorseTime → Optionen');
 } catch (e) {
   errors.push('Abbruch: ' + e.message);
 } finally {

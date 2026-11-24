@@ -1,7 +1,7 @@
 // Service Worker: App-Dateien offline vorhalten, angesehene Kartenkacheln zwischenspeichern.
 // Bei JEDER Änderung an App-Dateien VERSION erhöhen – sonst bekommen Nutzer die alte Fassung aus dem Cache.
 
-const VERSION = '1.0.0';
+const VERSION = '1.0.1';
 const SHELL = `ht-shell-${VERSION}`;
 const TILES = 'ht-tiles-v1';
 const TILE_MAX_AGE = 7 * 24 * 3600 * 1000; // danach neu laden (offline: alte Kachel weiter nutzen)

@@ -1,7 +1,8 @@
 <!doctype html>
 <!--
   Legacy: HTML-Nachbau der alten Android-App "TimeTable" (org.cwinkler.timetable, ca. 2018).
-  Erreichbar aus HorseTime unter Optionen → „Alte Version“; Link oben rechts führt zurück.
+  Erreichbar aus HorseTime unter Optionen → „Alte Version“; Link oben rechts führt nach einer Abfrage zurück.
+  Teil der installierbaren HorseTime-App (gleiches Manifest, gleicher Service Worker → offline).
   Quelle (Android-Projekt, nicht in diesem Repo): app/src/main/java/org/cwinkler/timetable/
     - MainActivity.java  (UI, Formatierung, Ø-Geschwindigkeit)
     - Times.java         (Split-Tabelle, max. 50 Zeilen, Rest-Zeile)
@@ -19,6 +20,8 @@
 <meta name="theme-color" content="#008577">
 <title>TimeTable (Legacy)</title>
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <style>
   :root {
     color-scheme: light;
@@ -162,6 +165,11 @@
     cursor: pointer; border-radius: 2px;
   }
   .dlg-actions button:hover { background: #eef6f5; }
+
+  /* --- Abfrage: zurück zu HorseTime --- */
+  .leave-body { padding: 20px 20px 4px; }
+  .leave-body h2 { margin: 0 0 8px; font-size: 18px; font-weight: 500; }
+  .leave-body p { margin: 0; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -225,6 +233,17 @@
 </main>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<dialog id="leaveDlg" aria-labelledby="leaveTitle">
+  <div class="leave-body">
+    <h2 id="leaveTitle">Zur neuen Version wechseln?</h2>
+    <p id="leaveHint">Die Eingaben hier gehen dabei verloren.</p>
+  </div>
+  <div class="dlg-actions">
+    <button type="button" id="leaveCancel">Bleiben</button>
+    <button type="button" id="leaveOk">Wechseln</button>
+  </div>
+</dialog>
 
 <dialog id="picker">
   <div class="dlg-head" id="pickHead">00:00:00</div>
@@ -417,6 +436,21 @@ $("pickOk").addEventListener("click", () => {
   picker.close();
   render();
 });
+
+// Zurück zu HorseTime – mit Abfrage
+const leave = $("leaveDlg");
+document.querySelector(".appbar .back").addEventListener("click", e => {
+  e.preventDefault();
+  $("leaveHint").hidden = !(state.dist || state.step || state.min || state.max);
+  leave.showModal();
+});
+$("leaveCancel").addEventListener("click", () => leave.close());
+$("leaveOk").addEventListener("click", () => { location.href = "./#settings"; });
+
+// Offline-Betrieb/Installation auch bei direktem Aufruf dieser Seite
+if ("serviceWorker" in navigator && location.protocol !== "file:") {
+  navigator.serviceWorker.register("./sw.js").catch(() => {});
+}
 
 render();
 </script>

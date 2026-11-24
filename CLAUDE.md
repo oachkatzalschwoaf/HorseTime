@@ -11,7 +11,7 @@ Git repo on branch `main` with remote `origin` (GitHub). The user pushes manuall
 ## Layout
 
 - `app/` — the PWA (deployable folder). Vanilla ES modules, no build step, no runtime dependencies, no CDN.
-- `app/legacy.html` — self-contained single-file port of the old Android app "TimeTable" (min/max range split per step). It shares no code with the new app, is linked from Optionen, and links back to `./#settings`. Its header comment lists deliberate deviations from the Android original; update that list when changing its behavior.
+- `app/legacy.html` — self-contained single-file port of the old Android app "TimeTable" (min/max range split per step). It shares no code with the new app, is linked from Optionen, and links back to `./#settings` after a confirmation dialog. It links the same manifest and registers the same service worker, so it is offline-capable and installable when opened directly. Its header comment lists deliberate deviations from the Android original; update that list when changing its behavior.
 - `tests/` — `node:test` unit tests for the pure logic.
 - `tools/` — dev server, browser smoke test, icon generator (all dependency-free Node scripts).
 - `konzept_formelsammlung_fahrsport_zeit_distanz_rechner.md` — spec: formulas, time-window rules, UI requirements.
